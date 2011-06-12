@@ -1,0 +1,17 @@
+# lein-gae
+
+lein-gae is a Leiningen plugin that automates common Google App Engine tasks.
+
+## Usage
+
+lein gae
+lein gae new
+lein gae compile
+lein gae jar
+lein gae clean
+
+## License
+
+Copyright (C) 2011 Jun Kikuchi
+
+Distributed under the Eclipse Public License, the same as Clojure.
