@@ -26,7 +26,7 @@
     (when-not (.exists file)
       (with-open [out (io/writer file)] (.write out content)))))
 
-(defn gae-project
+(defn- gae-project
   [project]
   (assoc project
          :aot [(symbol (str (-x_ (:name project)) ".servlet"))]
