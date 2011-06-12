@@ -1,9 +1,11 @@
 (ns leiningen.gae
-  (:require [clojure.java.io :as io]
-            [leiningen.help  :as lein-help]
-            [leiningen.clean :as lein-clean]
-            [leiningen.deps  :as lein-deps]
-            [leiningen.jar   :as lein-jar]))
+  (:require [clojure.java.io   :as io]
+            [leiningen.help    :as lein-help]
+            [leiningen.deps    :as lein-deps]
+            [leiningen.compile :as lein-compile]
+            [leiningen.jar     :as lein-jar]
+            [leiningen.clean   :as lein-clean])
+  (:refer-clojure :exclude [compile]))
 
 (defn- -x_ [s] (.replaceAll s "-" "_"))
 (defn- _x- [s] (.replaceAll s "_" "-"))
@@ -14,6 +16,10 @@
 
 (defn- path [& xs] (.getPath (apply io/file xs)))
 
+(def dir-WEB-INF (path "war" "WEB-INF"))
+(def dir-lib     (path dir-WEB-INF "lib"))
+(def dir-class   (path dir-WEB-INF "classes"))
+
 (defn- write
   [content & path]
   (let [file (apply io/file path)]
@@ -22,14 +28,12 @@
 
 (defn gae-project
   [project]
-  (let [p (-x_ (:name project))
-        dir-lib (path "war" "WEB-INF" "lib")]
-    (assoc project
-           :aot [(symbol (str p ".servlet"))]
-           :library-path dir-lib
-           :target-dir   dir-lib
-           :extra-files-to-clean [dir-lib]
-           :omit-source true)))
+  (assoc project
+         :aot [(symbol (str (-x_ (:name project)) ".servlet"))]
+         :target-dir   dir-lib
+         :library-path dir-lib
+         :compile-path dir-class
+         :omit-source true))
 
 (def fmt-servlet
   (strln
@@ -99,9 +103,9 @@
   "Create a new GAE project skeleton."
   [project]
   (let [p (-x_ (:name project))]
-    (mkdirs "war" "WEB-INF" "lib")
-    (write (src-web_xml           project) "war" "WEB-INF" "web.xml")
-    (write (src-appengine-web_xml project) "war" "WEB-INF" "appengine-web.xml")
+    (mkdirs dir-WEB-INF)
+    (write (src-web_xml           project) dir-WEB-INF "web.xml")
+    (write (src-appengine-web_xml project) dir-WEB-INF "appengine-web.xml")
     (mkdirs "src" p)
     (write (src-core    project) "src" p "core.clj")
     (write (src-servlet project) "src" p "servlet.clj"))
@@ -112,26 +116,32 @@
   [project]
   (lein-deps/deps project))
 
+(defn compile
+  "Compile Clojure source and put it in war/WEB-INF/classes."
+  [project]
+  (lein-compile/compile project))
+
 (defn jar
   "Build a jar file and put it in war/WEB-INF/lib."
   [project]
-  (lein-jar/jar project (lein-jar/get-default-jar-name project)))
+  (lein-jar/jar project (lein-jar/get-default-jar-name project))
+  (lein-clean/clean project))
 
 (defn clean
   "Remove compiled class files and jars from project."
   [project]
-  (lein-clean/clean project)
-  (mkdirs "war" "WEB-INF" "lib"))
+  (lein-clean/clean (assoc project :extra-files-to-clean [dir-lib])))
 
 (defn gae
   "Manage a Google App Engine application tasks."
-  {:help-arglists '([new clean deps jar])
-   :subtasks [#'new #'clean #'deps #'jar]}
+  {:help-arglists '([new deps compile jar clean])
+   :subtasks [#'new #'deps #'compile #'jar #'clean]}
   ([project]
    (println (lein-help/help-for "gae")))
   ([project subtask]
    ((case subtask
-      "new"   new
-      "deps"  deps
-      "jar"   jar
-      "clean" clean) (gae-project project))))
+      "new"     new
+      "deps"    deps
+      "compile" compile
+      "jar"     jar
+      "clean"   clean) (gae-project project))))

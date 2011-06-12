@@ -6,6 +6,8 @@ lein-gae is a Leiningen plugin that automates common Google App Engine tasks.
 
 lein gae
 lein gae new
+lein gae deps
+lein gae compile
 lein gae jar
 lein gae clean
 
