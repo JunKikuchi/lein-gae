@@ -23,7 +23,8 @@
 (defn- write
   [content & path]
   (let [file (apply io/file path)]
-    (when-not (.exists file)
+    (if (.exists file)
+      (println "[skip] file exists:" (.getPath file)) 
       (with-open [out (io/writer file)] (.write out content)))))
 
 (defn- gae-project
